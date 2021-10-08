@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 #define PORT 8080
 #define BLOCK_SIZE 16
 #define EXPANSION_KEY_SIZE 176
@@ -38,6 +40,12 @@ const uint8_t REVERSE_SBOX[] = {
     0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
     0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
     0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d};
+const uint8_t MATRIX_MIX_COLUMN[] = {
+    0x02, 0x03, 0x01, 0x01,
+    0x01, 0x02, 0x03, 0x01,
+    0x01, 0x01, 0x02, 0x03,
+    0x03, 0x01, 0x01, 0x02};
+
 
 void expand_key(uint8_t *expanded_key_buffer)
 {
@@ -62,20 +70,16 @@ void expand_key(uint8_t *expanded_key_buffer)
 
         if (i % 4 == 0)
         {
-            {
-                const uint8_t u8temp1 = temp[0];
-                temp[0] = temp[1];
-                temp[1] = temp[2];
-                temp[2] = temp[3];
-                temp[3] = u8temp1;
-            }
+            const uint8_t temp1 = temp[0];
+            temp[0] = temp[1];
+            temp[1] = temp[2];
+            temp[2] = temp[3];
+            temp[3] = temp1;
 
-            {
-                temp[0] = SBOX[temp[0]];
-                temp[1] = SBOX[temp[1]];
-                temp[2] = SBOX[temp[2]];
-                temp[3] = SBOX[temp[3]];
-            }
+            temp[0] = SBOX[temp[0]];
+            temp[1] = SBOX[temp[1]];
+            temp[2] = SBOX[temp[2]];
+            temp[3] = SBOX[temp[3]];
 
             temp[0] = temp[0] ^ RCON[i / 4];
         }
@@ -98,7 +102,7 @@ void add_round_key(int round, uint8_t *buffer, uint8_t *expanded_key_buffer)
     {
         for (j = 0; j < 4; j++)
         {
-            buffer[i * 4 + j] ^= expanded_key_buffer[(round * 16) + (i * 4) + j];
+            buffer[i * 4 + j] ^= expanded_key_buffer[(round * 16) + i * 4 + j];
         }
     }
 }
@@ -115,7 +119,121 @@ void change_counter(uint8_t *counter)
     }
 }
 
-uint8_t xtime(uint8_t x)
+void print_number(uint8_t *buffer, int size)
 {
-    return ((x << 1) ^ (((x >> 7) & 1) * 0x1b));
+    int i;
+
+    for (i = 0; i < size; i++)
+    {
+        printf("%d ", buffer[i]);
+    }
+
+    puts("");
+}
+
+// https://en.wikipedia.org/wiki/Rijndael_MixColumns
+uint8_t galois_multiplication(uint8_t a, uint8_t b)
+{ // Galois Field (256) Multiplication of two Bytes
+    uint8_t p = 0;
+    int counter;
+
+    for (counter = 0; counter < 8; counter++)
+    {
+        if ((b & 1) != 0)
+        {
+            p ^= a;
+        }
+
+        bool hi_bit_set = (a & 0x80) != 0;
+        a <<= 1;
+        if (hi_bit_set)
+        {
+            a ^= 0x1B; /* x^8 + x^4 + x^3 + x + 1 */
+        }
+        b >>= 1;
+    }
+
+    return p;
+}
+
+void subtitute_bytes(uint8_t *encrypt_buffer)
+{
+    uint8_t i, j;
+
+    for (i = 0; i < 4; i++)
+    {
+        for (j = 0; j < 4; j++)
+        {
+            encrypt_buffer[j * 4 + i] = SBOX[encrypt_buffer[j * 4 + i]];
+        }
+    }
+}
+
+void shift_rows(uint8_t *encrypt_buffer)
+{
+    uint8_t temp;
+
+    temp = encrypt_buffer[4 * 1 + 0];
+    encrypt_buffer[4 * 1 + 0] = encrypt_buffer[4 * 1 + 1];
+    encrypt_buffer[4 * 1 + 1] = encrypt_buffer[4 * 1 + 2];
+    encrypt_buffer[4 * 1 + 2] = encrypt_buffer[4 * 1 + 3];
+    encrypt_buffer[4 * 1 + 3] = temp;
+
+    temp = encrypt_buffer[4 * 2 + 0];
+    encrypt_buffer[4 * 2 + 0] = encrypt_buffer[4 * 2 + 2];
+    encrypt_buffer[4 * 2 + 2] = temp;
+    temp = encrypt_buffer[4 * 2 + 1];
+    encrypt_buffer[4 * 2 + 1] = encrypt_buffer[4 * 2 + 3];
+    encrypt_buffer[4 * 2 + 3] = temp;
+
+    temp = encrypt_buffer[4 * 3 + 0];
+    encrypt_buffer[4 * 3 + 0] = encrypt_buffer[4 * 3 + 3];
+    encrypt_buffer[4 * 3 + 3] = encrypt_buffer[4 * 3 + 2];
+    encrypt_buffer[4 * 3 + 2] = encrypt_buffer[4 * 3 + 1];
+    encrypt_buffer[4 * 3 + 1] = temp;
+}
+
+void mix_columns(uint8_t *encrypt_buffer)
+{
+    uint8_t i, j, temp[4];
+
+    for (i = 0; i < 4; i++)
+    {
+        for (j = 0; j < 4; j++)
+        {
+            temp[j] = galois_multiplication(MATRIX_MIX_COLUMN[j * 4 + 0], encrypt_buffer[0 * 4 + i]) ^
+                      galois_multiplication(MATRIX_MIX_COLUMN[j * 4 + 1], encrypt_buffer[1 * 4 + i]) ^
+                      galois_multiplication(MATRIX_MIX_COLUMN[j * 4 + 2], encrypt_buffer[2 * 4 + i]) ^
+                      galois_multiplication(MATRIX_MIX_COLUMN[j * 4 + 3], encrypt_buffer[3 * 4 + i]);
+        }
+
+        for (j = 0; j < 4; j++)
+        {
+            encrypt_buffer[j * 4 + i] = temp[j];
+        }
+    }
+}
+
+void encrypt(uint8_t *counter, uint8_t *encrypt_buffer, uint8_t *expanded_key_buffer)
+{
+    int i;
+
+    memcpy(encrypt_buffer, counter, BLOCK_SIZE);
+
+    // print_number(encrypt_buffer, BLOCK_SIZE);
+    add_round_key(0, encrypt_buffer, expanded_key_buffer);
+    // print_number(encrypt_buffer, BLOCK_SIZE);
+
+    for (i = 1; i <= 10; i++)
+    {
+        subtitute_bytes(encrypt_buffer);
+        // print_number(encrypt_buffer, BLOCK_SIZE);
+        shift_rows(encrypt_buffer);
+        // print_number(encrypt_buffer, BLOCK_SIZE);
+        if (i != 10)
+            mix_columns(encrypt_buffer);
+        // print_number(encrypt_buffer, BLOCK_SIZE);
+        add_round_key(i, encrypt_buffer, expanded_key_buffer);
+        // print_number(encrypt_buffer, BLOCK_SIZE);
+    }
 }
