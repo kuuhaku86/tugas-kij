@@ -5,3 +5,9 @@ Cara run :
 - Masukkan angka 1 jika ingin encrypt file
 - Masukkan angka 2 jika ingin decrypt file
 - Masukkan angka 3 jika sudah selesai
+
+UPDATED :
+4. `gcc senderMain.c -o sender -lm -lcrypto -lssl`
+5. `gcc receiverMain.c -o receiver -lm -lcrypto -lssl`
+6. `./sender input.txt`
+7. `./receiver recovered.txt`
