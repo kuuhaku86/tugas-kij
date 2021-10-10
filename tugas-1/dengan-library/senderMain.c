@@ -118,7 +118,7 @@ void encrypt()
     {
         bytes_read = fread(indata, 1, AES_BLOCK_SIZE, fileptr);
         AES_ctr128_encrypt(indata, outdata, bytes_read, &key, state.ivec, state.ecount, &state.num);
-        puts(outdata);
+
         send(new_socket, outdata, bytes_read, 0);
         if (bytes_read < AES_BLOCK_SIZE)
             break;
