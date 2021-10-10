@@ -7,7 +7,7 @@ Cara run :
 - Masukkan angka 3 jika sudah selesai
 
 UPDATED :
-4. `gcc senderMain.c -o sender -lm -lcrypto -lssl`
-5. `gcc receiverMain.c -o receiver -lm -lcrypto -lssl`
-6. `./sender input.txt`
-7. `./receiver recovered.txt`
+1. `gcc senderMain.c -o sender -lm -lcrypto -lssl`
+2. `gcc receiverMain.c -o receiver -lm -lcrypto -lssl`
+3. `./sender input.txt`
+4. `./receiver recovered.txt`
