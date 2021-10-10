@@ -108,7 +108,6 @@ void decrypt()
     {
         AES_ctr128_encrypt(file_buffer, outdata, length, &key, state.ivec, state.ecount, &state.num);
         bytes_written = fwrite(outdata, 1, length, fileptr);
-        printf("%d\n", bytes_written);
         puts(file_buffer);
     }
     // fclose(fileptr);
