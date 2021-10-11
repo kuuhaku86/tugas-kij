@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "custom-lib.h"
+#include "rsa.c"
 
 #define DEV 0
 
@@ -23,10 +24,20 @@ void receive_file()
     uint8_t decrypt_buffer[BLOCK_SIZE],
         file_buffer[BLOCK_SIZE],
         expanded_key_buffer[EXPANSION_KEY_SIZE],
-        counter[BLOCK_SIZE] = {0};
+        counter[BLOCK_SIZE] = {0},
+        key[BLOCK_SIZE] = {0},
+        encrypted_key[BLOCK_SIZE] = {0},
+        temp_key[BLOCK_SIZE] = {0};
+
+    memset(key, 0, BLOCK_SIZE);
+    recv(sock, encrypted_key, BLOCK_SIZE, 0);
+    rsa_decrypt(temp_key, encrypted_key);
+
+    for (i = 0; i < BLOCK_SIZE; i++)
+        key[i] = temp_key[i];
 
     memset(file_buffer, 0, BLOCK_SIZE);
-    expand_key(expanded_key_buffer);
+    expand_key(expanded_key_buffer, key);
 
     while ((length = recv(sock, file_buffer, BLOCK_SIZE, 0)) > 0)
     {

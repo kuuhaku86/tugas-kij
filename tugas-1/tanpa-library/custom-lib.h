@@ -3,7 +3,6 @@
 #define PORT 8080
 #define BLOCK_SIZE 16
 #define EXPANSION_KEY_SIZE 176
-const uint8_t KEY[] = {0x4f, 0x6e, 0x65, 0xc9, 0x54, 0x77, 0x6f, 0x59, 0x54, 0x77, 0x6f, 0xd6, 0x4e, 0x69, 0x6e, 0x65};
 const uint8_t RCON[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 const uint8_t SBOX[] =
     {
@@ -47,17 +46,17 @@ const uint8_t MATRIX_MIX_COLUMN[] = {
     0x03, 0x01, 0x01, 0x02};
 
 
-void expand_key(uint8_t *expanded_key_buffer)
+void expand_key(uint8_t *expanded_key_buffer, uint8_t *key)
 {
     int i, j, k;
     uint8_t temp[4];
 
     for (i = 0; i < 4; i++)
     {
-        expanded_key_buffer[(i * 4) + 0] = KEY[(i * 4) + 0];
-        expanded_key_buffer[(i * 4) + 1] = KEY[(i * 4) + 1];
-        expanded_key_buffer[(i * 4) + 2] = KEY[(i * 4) + 2];
-        expanded_key_buffer[(i * 4) + 3] = KEY[(i * 4) + 3];
+        expanded_key_buffer[(i * 4) + 0] = key[(i * 4) + 0];
+        expanded_key_buffer[(i * 4) + 1] = key[(i * 4) + 1];
+        expanded_key_buffer[(i * 4) + 2] = key[(i * 4) + 2];
+        expanded_key_buffer[(i * 4) + 3] = key[(i * 4) + 3];
     }
 
     for (i = 4; i < 44; i++)

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "custom-lib.h"
+#include "rsa.c"
 
 #define DEV 0
 
@@ -24,9 +25,14 @@ void send_file()
     uint8_t file_buffer[BLOCK_SIZE],
         counter[BLOCK_SIZE] = {0},
         encrypt_buffer[BLOCK_SIZE],
-        expanded_key_buffer[EXPANSION_KEY_SIZE];
+        expanded_key_buffer[EXPANSION_KEY_SIZE],
+        key[BLOCK_SIZE] = "halohalosurabaya",
+        encrypted_key[BLOCK_SIZE];
+    
+    rsa_encrypt(key, encrypted_key);
+    send(new_socket, encrypted_key, BLOCK_SIZE, 0);
 
-    expand_key(expanded_key_buffer);
+    expand_key(expanded_key_buffer, key);
 
     while (1)
     {
