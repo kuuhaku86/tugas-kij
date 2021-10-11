@@ -7,6 +7,7 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include "aes_ctr.h"
+#include "rsa.c"
 #define PORT 8080
 
 struct ctr_state
@@ -101,6 +102,7 @@ int init_ctr(struct ctr_state *state, const unsigned char iv[8])
 
 void encrypt()
 {
+    uint8_t encrypted_key[AES_BLOCK_SIZE];
     //Opening files where text plain text is read and ciphertext stored
 
     if (fileptr == NULL)
@@ -108,6 +110,9 @@ void encrypt()
         fputs("File error", stderr);
         exit(1);
     }
+
+    rsa_encrypt(ckey, encrypted_key);
+    send(new_socket, encrypted_key, AES_BLOCK_SIZE, 0);
 
     //Initializing the encryption KEY
     AES_set_encrypt_key(ckey, 128, &key);
